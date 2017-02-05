@@ -184,3 +184,22 @@ dat = wi %>% group_by(fips) %>% summarize(propGoodRoads = mean(good))
 
 dat %>% transmute(region = fips, value = propGoodRoads) %>% county_choropleth(state_zoom = "wisconsin")
 
+
+
+
+#My own try
+mykeep=c("STATE_CODE_001",  "COUNTY_CODE_003", "DIRECTION_005E" , "ADT_029"  ,"YEAR_BUILT_027" , "MAIN_UNIT_SPANS_045"     ,   "STRUCTURE_LEN_MT_049" )
+mydata=select(M,one_of(mykeep))
+ggplot(data=mydata,mapping=aes(group=DIRECTION_005E,x=DIRECTION_005E,y=log(ADT_029)))+geom_boxplot()
+ggplot(data=mydata,mapping=aes(group=DIRECTION_005E,x=DIRECTION_005E,y=log(MAIN_UNIT_SPANS_045)))+geom_boxplot()
+ggplot(data=mydata,mapping=aes(group=DIRECTION_005E,x=DIRECTION_005E,y=log(STRUCTURE_LEN_MT_049)))+geom_boxplot()
+ggplot(data=mydata,mapping=aes(x=YEAR_BUILT_027,y=log(ADT_029),col=DIRECTION_005E))+geom_point()
+
+wi=filter(mydata,STATE_CODE_001==055)
+wi = mutate(wi, fips = STATE_CODE_001*1000+COUNTY_CODE_003)
+group=group_by(wi,fips)
+ADT=data.frame(summarise(group,sum(ADT_029)))
+ADT %>% transmute(region = fips, value = ADT[,2]) %>% county_choropleth(state_zoom = "wisconsin")
+
+SLM=data.frame(summarise(group,mean(STRUCTURE_LEN_MT_049)))
+SLM %>% transmute(region = fips, value = SLM[,2]) %>% county_choropleth(state_zoom = "wisconsin")

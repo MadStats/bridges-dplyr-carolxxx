@@ -1,0 +1,65 @@
+#I'm so sorry that here I use the new data to try dplyr. Because I want to keep the result, I also put this code on github. And the try of bridges data is in the downloadBridges.R
+
+#Here is the data description of this dataset:http://archive.ics.uci.edu/ml/datasets/Communities+and+Crime+Unnormalized# 
+
+#Data Import
+
+```{r}
+library(plyr)
+library(choroplethr)
+library(dplyr)
+library(readr)
+library(data.table)
+dest="http://archive.ics.uci.edu/ml/machine-learning-databases/00211/CommViolPredUnnormalizedData.txt"
+tmp=fread(dest,na.strings = '?')
+tmp=as.tbl(tmp)
+CC=tmp
+page="http://archive.ics.uci.edu/ml/datasets/Communities+and+Crime+Unnormalized#"
+lines=read_lines(page)
+needed.lines=lines[566:712]
+(variables.names=sub(pattern="<br>@attribute\\s(.*?)\\s(.*)",replacement="\\1",x=needed.lines))
+variables.names=as.vector(variables.names)
+names(CC)=variables.names
+```
+
+#Test NULL
+
+```{r}
+is.na(CC) %>% rowSums %>% hist(breaks=30)
+is.na(CC) %>% colSums %>% hist
+```
+
+
+#Select needed variables
+
+```{r}
+needed=c("communityname","State","countyCode","communityCode","pop","perHoush","medIncome","medFamIncome","perCapInc","persPoverty","pctPoverty","pctAllDivorc","murdPerPop","rapesPerPop","robbbPerPop","assaultPerPop","burglPerPop","larcPerPop","autoTheftPerPop","arsonsPerPop","violentPerPop","nonViolPerPop")
+needed.data=select(CC,one_of(needed))
+```
+
+#ggplot of total crime vs some variables I am interested in
+
+```{r}
+library(ggplot2)
+ggplot(data=needed.data,mapping = aes(x=perHoush,y=murdPerPop+rapesPerPop+robbbPerPop+assaultPerPop+burglPerPop+larcPerPop+autoTheftPerPop+arsonsPerPop+violentPerPop+nonViolPerPop))+geom_point()+geom_smooth()
+ggplot(data=needed.data,mapping = aes(x=medIncome,y=murdPerPop+rapesPerPop+robbbPerPop+assaultPerPop+burglPerPop+larcPerPop+autoTheftPerPop+arsonsPerPop+violentPerPop+nonViolPerPop))+geom_point()+geom_smooth()
+ggplot(data=needed.data,mapping = aes(x=medFamIncome,y=murdPerPop+rapesPerPop+robbbPerPop+assaultPerPop+burglPerPop+larcPerPop+autoTheftPerPop+arsonsPerPop+violentPerPop+nonViolPerPop))+geom_point()+geom_smooth()
+ggplot(data=needed.data,mapping = aes(x=perCapInc,y=murdPerPop+rapesPerPop+robbbPerPop+assaultPerPop+burglPerPop+larcPerPop+autoTheftPerPop+arsonsPerPop+violentPerPop+nonViolPerPop))+geom_point()+geom_smooth()
+ggplot(data=needed.data,mapping = aes(x=pctPoverty,y=murdPerPop+rapesPerPop+robbbPerPop+assaultPerPop+burglPerPop+larcPerPop+autoTheftPerPop+arsonsPerPop+violentPerPop+nonViolPerPop))+geom_point()+geom_smooth()
+ggplot(data=needed.data,mapping = aes(x=pctAllDivorc,y=murdPerPop+rapesPerPop+robbbPerPop+assaultPerPop+burglPerPop+larcPerPop+autoTheftPerPop+arsonsPerPop+violentPerPop+nonViolPerPop))+geom_point()+geom_smooth()
+```
+
+#Total crime per 100k population with wisconsin map
+
+```{r}
+library(choroplethrMaps)
+wi=filter(needed.data,State=="WI")
+wi = mutate(wi, fips = 55000+countyCode)
+by_fips=group_by(wi,fips)
+sumcrime=summarise(by_fips,sum(murdPerPop+rapesPerPop+robbbPerPop+assaultPerPop+burglPerPop+larcPerPop+autoTheftPerPop+arsonsPerPop+violentPerPop+nonViolPerPop))
+sumcrime=data.frame(sumcrime)
+sumcrime%>% transmute(region = fips, value = sumcrime[,2]) %>% county_choropleth(state_zoom = "wisconsin") #total crime
+
+```
+
+
