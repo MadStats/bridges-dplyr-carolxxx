@@ -203,3 +203,39 @@ ADT %>% transmute(region = fips, value = ADT[,2]) %>% county_choropleth(state_zo
 
 SLM=data.frame(summarise(group,mean(STRUCTURE_LEN_MT_049)))
 SLM %>% transmute(region = fips, value = SLM[,2]) %>% county_choropleth(state_zoom = "wisconsin")
+
+#second try
+needed=c("STATE_CODE_001","COUNTY_CODE_003","LAT_016","LONG_017","TOLL_020","YEAR_BUILT_027","ADT_029","RAILINGS_036A","TRANSITIONS_036B","APPR_RAIL_036C","APPR_RAIL_END_036D","HISTORY_037", "STRUCTURAL_EVAL_067","DECK_GEOMETRY_EVAL_068","UNDCLRENCE_EVAL_069","POSTING_EVAL_070","WATERWAY_EVAL_071","APPR_ROAD_EVAL_072")
+M1=select(M,one_of(needed))
+library(ggplot2)
+ggplot(data=M1)+geom_boxplot(mapping=aes(y=YEAR_BUILT_027,x=HISTORY_037,group=HISTORY_037))+labs(title="Built year vs historical significance")
+
+M1=mutate(M1,fips=STATE_CODE_001*1000+COUNTY_CODE_003)
+M1=mutate(M1,appraisalmeetminimum=STRUCTURAL_EVAL_067>=4&DECK_GEOMETRY_EVAL_068>=4&UNDCLRENCE_EVAL_069>=4&POSTING_EVAL_070>=4&WATERWAY_EVAL_071>=4&APPR_ROAD_EVAL_072>=4)
+
+
+
+min2dec = function(x){
+  as.numeric(substr(x,1,2)) + as.numeric(substr(x,3,8))/6e+05 %>% return
+}
+min2dec(M1$LAT_016[1])
+
+M1 = mutate(M1,lat = min2dec(LAT_016), lon = min2dec(LONG_017))
+
+by_fips=group_by(M1,fips)
+miniprop=data.frame(summarise(by_fips,mean(appraisalmeetminimum)))
+library(choroplethrMaps)
+names(miniprop)=c("fips","miniprop")
+miniprop %>% transmute(region = fips, value = miniprop) %>% county_choropleth(title="The proportion of bridges meeting or above minimum tolerable limits in terms of appraisal rate")
+
+M1=mutate(M1,allTSacceptable= RAILINGS_036A==1&TRANSITIONS_036B==1&APPR_RAIL_036C==1&APPR_RAIL_END_036D==1)
+by_fips=group_by(M1,fips)
+trafficsafety.acceptable=data.frame(summarise(by_fips,mean(allTSacceptable)))
+names(trafficsafety.acceptable)=c("fips","allTSacceptable")
+trafficsafety.acceptable%>%transmute(region=fips,value=allTSacceptable)%>%county_choropleth(title="The proportion of bridges meeting trafic safety standards")
+
+M1 = filter(M1,lon<100&lon>60&lat>20&lat<50)
+ggplot(data = M1) +geom_point(mapping = aes(y = lat, x = lon,col=HISTORY_037))+labs(title="Bridges' historical significance on map")
+
+pdf("plot2.pdf")
+dev.off()
